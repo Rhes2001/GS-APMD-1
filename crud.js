@@ -1,70 +1,104 @@
-document.querySelector("#salvar").addEventListener("click", cadastrar);
+document.querySelector("#salvar").addEventListener("click", cadastrar)
 
-const categoria = 'Selecione a Categoria de Despesa';
+let despesas = []
 
-function validar(despesa) {
-    const keys = Object.keys(despesa);
-    const arr = [];
-    for (let key of keys) {
-        const campo = document.querySelector(`#${key}`);
-        if (despesa[key].length < 1 || despesa[key] == categoria) {
-            campo.classList.add("is-invalid");
-            campo.classList.remove("is-valid");
-            arr.push(false);
-            return;
-        }
-        campo.classList.remove("is-invalid");
-        campo.classList.add("is-valid");
-        arr.push(true);
-    }
-    return arr.every((el) => el == true);
+window.addEventListener("load", () => {
+ despesas = JSON.parse(localStorage.getItem("despesas")) || []
+ atualizar()
+})
+
+document.querySelector("#busca").addEventListener("keyup", ()=> {
+ let busca = document.querySelector("#busca").value
+ let despesasFiltradas = despesas.filter((despesa) =>{
+ return despesa.fornecedor.toLowerCase().includes(busca.toLowerCase())
+ })
+ filtrar(despesasFiltradas)
+})
+
+function filtrar(despesas){
+ document.querySelector("#tarefas").innerHTML = ""
+ despesas.forEach((despesa) =>{
+ document.querySelector("#tarefas").innerHTML 
+ += createCard(despesa)
+ })
 }
 
-function cadastrar({ target }) {
-    const fornecedor = document.querySelector("#cliente");
-    const valor = document.querySelector("#descricao");
-    const categoria = document.querySelector("#categoria");
-
-    const despesa = {
-        fornecedor: fornecedor.value,
-        valor: valor.value,
-        categoria: categoria.value,
-    };
-
-    if (!validar(despesa)) {
-        return;
-    }
-
-    document.querySelector(".card-body").innerHTML += createCard(despesa);
+function atualizar(){
+ document.querySelector("#tarefas").innerHTML = ""
+ localStorage.setItem("despesas", JSON.stringify(despesas))
+ despesas.forEach((despesa) =>{
+ document.querySelector("#tarefas").innerHTML 
+ += createCard(despesa)
+ })
 }
 
-function deleteService(card) {
-    document.querySelector(`#card${card}`).remove();
+function cadastrar(){
+ const fornecedor = document.querySelector("#titulo").value
+ const valor = document.querySelector("#descricao").value
+ const categoria = document.querySelector("#categoria").value
+ const modal = bootstrap.Modal.getInstance(document.querySelector("#exampleModal"))
+
+ const despesa = {
+ id: Date.now(),
+ fornecedor,
+ valor,
+ categoria,
+ concluida: false
+ }
+ 
+ if (!validar(despesa.fornecedor, document.querySelector("#titulo"))) return
+ if (!validar(despesa.valor, document.querySelector("#descricao"))) return
+ 
+ despesas.push(despesa) 
+ 
+ atualizar()
+
+ modal.hide()
+
 }
 
-function createCard(despesa) {
-    const data = new Date();
-    const cards = document.querySelectorAll(".card");
-    return `
- <div id="card${cards.length}">
- <div class="card">
- <div class="card-header">
- ${despesa.fornecedor}
- </div>
+function validar(valor, campo){
+ if(valor == ""){
+ campo.classList.add("is-invalid")
+ campo.classList.remove("is-valid")
+ return false
+ }
+
+ campo.classList.remove("is-invalid")
+ campo.classList.add("is-valid")
+ return true
+ 
+}
+
+function apagar(id){
+
+ despesas = despesas.filter((despesa) => {
+ return despesa.id != id
+ })
+ atualizar()
+ 
+}
+
+function concluir(id){
+ let despesaEncontrada = despesas.find((despesa) => {
+ return despesa.id == id
+ })
+ despesaEncontrada.concluida = true
+ atualizar()
+}
+
+function createCard(despesa){
+ let disabled = despesa.concluida ? "disabled" : ""
+
+ return `
+ <div class="card mt-3">
  <div class="card-body">
- <p class="card-text">${data}</p>
+ <h5 class="card-title">fornecedor: ${despesa.fornecedor}</h5>
  <p class="card-text">Valor: ${despesa.valor}</p>
- <p>
- <span class="badge text-bg-warning">Pendente</span>
- </p>
- <a href="#" class="btn btn-success">
- <i class="bi bi-check-lg"></i>
- </a>
- <a href="#" onclick="deleteService(${cards.length})" class="btn btn-danger">
- <i class="bi bi-trash"></i>
- </a>
+ <p class="card-text">Categoria: ${despesa.categoria}</p>
+ <button ${disabled} onclick="concluir(${despesa.id})" class="btn btn-success">Concluir</button>
+ <button onclick="apagar(${despesa.id})" class="btn btn-danger">Apagar</button>
  </div>
- </div> <!-- card -->
-</div> <!-- col -->
- ` //template literals
+ </div>
+ `
 }
